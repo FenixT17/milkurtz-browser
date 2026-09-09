@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; connect-src https: http:; font-src 'self' data:;">
+  <title>Milkurtz Browser</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <!-- Tela de bloqueio por senha -->
+    <div id="lock-screen" class="lock-screen hidden">
+      <div class="lock-box">
+        <div class="brand-lock">
+          <span class="brand-dot"></span>
+          <strong>Milkurtz Browser</strong>
+        </div>
+        <p class="lock-hint">Digite sua senha para desbloquear o navegador.</p>
+        <form id="lock-form" class="stack-form">
+          <input id="lock-password" type="password" class="text-input" placeholder="Senha" autofocus>
+          <button class="primary-button" type="submit">Desbloquear</button>
+          <p id="lock-error" class="form-error"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Estrutura do navegador -->
+    <div class="browser-shell">
+      <header class="browser-topbar">
+        <div class="window-brand">
+          <span class="brand-dot"></span>
+          <span>Milkurtz</span>
+        </div>
+        <div class="window-actions">
+          <button class="icon-button" data-window-action="minimize" aria-label="Minimizar">&#x2013;</button>
+          <button class="icon-button" data-window-action="maximize" aria-label="Maximizar">&#x25A1;</button>
+          <button class="icon-button close" data-window-action="close" aria-label="Fechar">&#x2715;</button>
+        </div>
+      </header>
+
+      <nav class="tab-strip">
+        <div id="tabs" class="tabs"></div>
+        <button id="new-tab" class="new-tab-button" aria-label="Nova aba">+</button>
+      </nav>
+
+      <div class="toolbar">
+        <div class="toolbar-nav">
+          <button class="address-action" data-nav-action="back" aria-label="Voltar">&#x2190;</button>
+          <button class="address-action" data-nav-action="forward" aria-label="Avançar">&#x2192;</button>
+          <button class="address-action" data-nav-action="reload" aria-label="Recarregar">&#x21BB;</button>
+          <button class="address-action" data-nav-action="home" aria-label="Início">&#x2302;</button>
+        </div>
+        <form id="address-form" class="address-bar">
+          <input id="address-input" class="address-input" type="text" placeholder="Pesquisar ou digitar endereço" spellcheck="false">
+        </form>
+        <div class="toolbar-tools">
+          <button class="address-action" data-panel-action="bookmarks" aria-label="Favoritos" title="Favoritos">&#x2605;</button>
+          <button class="address-action" data-panel-action="history" aria-label="Histórico" title="Histórico">&#x23F3;</button>
+          <button class="address-action" data-panel-action="downloads" aria-label="Downloads" title="Downloads">&#x2193;</button>
+          <button class="address-action menu-button" data-panel-action="settings" aria-label="Configurações" title="Configurações">&#x22EE;</button>
+        </div>
+      </div>
+
+      <div id="page-area" class="page-area">
+        <div id="home-page" class="home-page">
+          <div class="home-glow"></div>
+          <div class="home-content">
+            <div class="home-logo">
+              <span class="brand-dot"></span>
+              <h1>Milkurtz</h1>
+            </div>
+            <p id="home-motto" class="motto"></p>
+            <div class="quick-links">
+              <button class="quick-link" data-quick="https://www.google.com">
+                <span class="quick-icon">G</span><span>Google</span>
+              </button>
+              <button class="quick-link" data-quick="https://www.youtube.com">
+                <span class="quick-icon">&#x25B6;</span><span>YouTube</span>
+              </button>
+              <button class="quick-link" data-quick="https://duckduckgo.com">
+                <span class="quick-icon">&#x1F986;</span><span>DuckDuckGo</span>
+              </button>
+              <button class="quick-link" data-quick="https://github.com">
+                <span class="quick-icon">&#x1F5C2;</span><span>GitHub</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="webview-host" class="webview-host"></div>
+        <aside id="side-panel" class="side-panel hidden">
+          <div class="panel-heading">
+            <h2 id="panel-title">Favoritos</h2>
+            <button class="icon-button" data-panel-close aria-label="Fechar painel">&#x2715;</button>
+          </div>
+          <div id="panel-content" class="panel-content"></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

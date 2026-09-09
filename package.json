@@ -1,0 +1,69 @@
+{
+  "name": "milkurtz-browser",
+  "productName": "Milkurtz Browser",
+  "version": "1.0.0",
+  "description": "Navegador web focado em usuários de língua portuguesa, com sistema de instalação e atualizações automáticas.",
+  "main": "src/main.js",
+  "author": "siqwsxx",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "check": "node scripts/check-sac.ps1",
+    "build": "electron-builder --win nsis",
+    "release": "electron-builder --win nsis --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.milkurtz.browser",
+    "productName": "Milkurtz Browser",
+    "asar": true,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "siqwsxx",
+        "repo": "milkurtz-browser"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "version.json",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/Milkurtz.ico",
+      "artifactName": "milkurtz-${version}-setup.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Milkurtz Browser",
+      "installerIcon": "assets/Milkurtz.ico",
+      "uninstallerIcon": "assets/Milkurtz.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "perMachine": true
+    }
+  }
+}
