@@ -3,6 +3,14 @@
 const fs = require('fs');
 const path = require('path');
 
+let idCounter = 0;
+
+/** Gera um id único mesmo quando duas entradas são criadas no mesmo milissegundo. */
+function uniqueId() {
+  idCounter = (idCounter + 1) % 1000;
+  return `${Date.now()}-${idCounter}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
 const DEFAULTS = {
   settings: {
     theme: 'milkurtz',
@@ -73,7 +81,7 @@ class Store {
     const existing = this.cache.bookmarks.find((b) => b.url === url);
     if (existing) return this.getBookmarks();
     const bookmark = {
-      id: String(Date.now()),
+      id: uniqueId(),
       title,
       url,
       timestamp: Date.now()
@@ -95,8 +103,11 @@ class Store {
 
   addHistory({ title, url }) {
     if (!url || url === 'milkurtz://home') return this.getHistory();
+    // Deduplica por URL: a mesma página não gera entradas repetidas —
+    // a visita mais recente sobe para o topo.
+    this.cache.history = this.cache.history.filter((h) => h.url !== url);
     const entry = {
-      id: String(Date.now()),
+      id: uniqueId(),
       title: title || url,
       url,
       timestamp: Date.now()

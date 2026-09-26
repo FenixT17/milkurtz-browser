@@ -15,8 +15,8 @@
 
 ### Conhecido
 - `webviewTag` é funcional, porém menos seguro que alternativas sem webview; uso controlado.
-- O registro de histórico acontece quando a navegação começa (não apenas ao concluir).
-- A desativação da senha usa `window.prompt()` (UX aceitável, porém melhorável).
+- O histórico deduplica por URL: visitas repetidas sobem para o topo em vez de gerar entradas duplicadas.
+- A desativação da senha usa um modal no tema do app (`window.prompt()` não é suportado pelo Electron).
 
 ## Build
 

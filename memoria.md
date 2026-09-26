@@ -51,7 +51,21 @@
 - Funcionalidades: abas com webview persistente, página inicial customizada, favoritos/histórico/downloads, proteção por senha, temas, motor de pesquisa configurável.
 - Próximos passos: assinar binários ou desativar SAC para instalação limpa; implementar fluxo completo de atualizações automáticas.
 
+### Sessão 7
+- Corrigi o botão de favoritar: adicionada uma estrela na barra de endereço (`#bookmark-toggle`) que salva/remove a página atual (`bookmarks:add` antes era código morto).
+- Deduplicação de histórico por URL em `src/storage/store.js`; ids passaram a ser únicos mesmo no mesmo milissegundo.
+- Substituído `window.prompt()` (não suportado pelo Electron) por um modal no tema do app para desativar a senha.
+- Ajustes em `src/renderer/index.html` e `src/renderer/styles.css` (modal, botão de favoritar).
+- Corrigi `will-navigate` em `src/main.js`: comparava `'file://' + path.join(...)` (barras invertidas no Windows) e bloqueava navegação legítima; agora usa `pathToFileURL(...).href` normalizado.
+- Removi o `allowpopups` (atributo booleano: qualquer valor ativa popups) e o evento depreciado `new-window` do webview; `window.open` passou a ser negado globalmente via `web-contents-created` + `setWindowOpenHandler` no `main.js`.
+- Versão unificada: `package.json` é a fonte única (`app.getVersion()` passado ao `Updater`); removido `version` do `version.json`, que agora só tem feed e changelog (com aviso em `console.warn` se o campo reaparecer divergente).
+- Endureci o IPC do perfil: `app:getState` só devolve favoritos/histórico/downloads depois do desbloqueio (o renderer recarrega o estado com `applyAppState` ao desbloquear); `downloads:openPath` exige desbloqueio e só aceita caminhos da lista de downloads.
+- Adicionado modal no tema do app para **alterar a senha** (`#password-modal`, `promptChangePassword`): valida senha atual (via `password:set`) e confirmação da nova.
+- Corrigido estado da UI de segurança: novo campo `hasPassword` (de `passwordManager.hasPassword()`) separa "tem senha" de "está bloqueado"; antes `state.locked` era usado para os dois e o painel mostrava "Ativar proteção" mesmo com senha definida.
+- Verificação: `node --check` sem erros em `app.js`, `store.js`, `main.js`, `preload.js` e `updater.js`; `version.json` válido.
+- Pendente: testar a interface no Electron (`npm start`).
+
 ## Problemas conhecidos
 - Binários sem assinatura podem ser bloqueados pelo Smart App Control.
 - `webviewTag: true` exige cuidado extra de segurança.
-- A desativação da senha usa `window.prompt()` (melhorar UX no futuro).
+- `update:*` não exigem desbloqueio (não expõem dados do perfil).

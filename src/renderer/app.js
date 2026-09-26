@@ -6,6 +6,7 @@ const state = {
   tabs: [],
   activeTabId: null,
   locked: false,
+  hasPassword: false,
   settings: {
     theme: 'milkurtz',
     searchEngine: 'duckduckgo',
@@ -54,6 +55,21 @@ const els = {
   newTab: document.getElementById('new-tab'),
   addressForm: document.getElementById('address-form'),
   addressInput: document.getElementById('address-input'),
+  bookmarkToggle: document.getElementById('bookmark-toggle'),
+  modal: document.getElementById('modal'),
+  modalTitle: document.getElementById('modal-title'),
+  modalMessage: document.getElementById('modal-message'),
+  modalInput: document.getElementById('modal-input'),
+  modalError: document.getElementById('modal-error'),
+  modalConfirm: document.getElementById('modal-confirm'),
+  modalCancel: document.getElementById('modal-cancel'),
+  passwordModal: document.getElementById('password-modal'),
+  pwCurrent: document.getElementById('pw-current'),
+  pwNew: document.getElementById('pw-new'),
+  pwConfirm: document.getElementById('pw-confirm'),
+  pwError: document.getElementById('pw-modal-error'),
+  pwSave: document.getElementById('pw-modal-save'),
+  pwCancel: document.getElementById('pw-modal-cancel'),
   homePage: document.getElementById('home-page'),
   webviewHost: document.getElementById('webview-host'),
   homeMotto: document.getElementById('home-motto'),
@@ -92,12 +108,58 @@ function showWebview() {
   els.webviewHost.classList.remove('hidden');
 }
 
+function activeTab() {
+  return state.tabs.find((t) => t.id === state.activeTabId) || null;
+}
+
+/** URL da página atual, ou '' quando a aba ativa está na página inicial. */
+function currentPageUrl() {
+  const tab = activeTab();
+  if (!tab || isHome(tab.url)) return '';
+  return tab.url;
+}
+
+function bookmarkedEntry(url) {
+  return state.bookmarks.find((b) => b.url === url) || null;
+}
+
+/** Reflete no botão de favoritar se a página atual já está salva. */
+function updateBookmarkToggle() {
+  const btn = els.bookmarkToggle;
+  if (!btn) return;
+  const url = currentPageUrl();
+  const saved = url ? bookmarkedEntry(url) : null;
+  btn.disabled = !url;
+  btn.classList.toggle('on', Boolean(saved));
+  btn.textContent = saved ? '\u2605' : '\u2606';
+  btn.title = saved ? 'Remover dos favoritos' : 'Favoritar esta página';
+  btn.setAttribute('aria-label', btn.title);
+}
+
+/** Salva ou remove a página atual dos favoritos. */
+async function toggleBookmark() {
+  const url = currentPageUrl();
+  if (!url) return;
+  const existing = bookmarkedEntry(url);
+  const tab = activeTab();
+  try {
+    state.bookmarks = existing
+      ? await api.bookmarks.remove(existing.id)
+      : await api.bookmarks.add({ title: (tab && tab.title) || url, url });
+  } catch {
+    return;
+  }
+  updateBookmarkToggle();
+  if (currentPanel === 'bookmarks') renderPanel();
+}
+
 function createWebview(url) {
   const webview = document.createElement('webview');
   webview.className = 'webview';
   webview.setAttribute('src', url === 'milkurtz://home' ? '' : url);
   webview.setAttribute('partition', 'persist:milkurtz');
-  webview.setAttribute('allowpopups', 'false');
+  // Sem `allowpopups`: popups ficam bloqueados. window.open é negado no processo
+  // principal (web-contents-created) e links externos abrem no navegador do sistema.
   webview.setAttribute('webpreferences', 'contextIsolation=yes, nodeIntegration=no');
   els.webviewHost.appendChild(webview);
   return webview;
@@ -163,6 +225,7 @@ function activateTab(id) {
     }
   }
   els.addressInput.value = isHome(tab.url) ? '' : tab.url;
+  updateBookmarkToggle();
 }
 
 function closeTab(id) {
@@ -184,7 +247,10 @@ function wireWebview(tab) {
   if (!tab.webview) return;
   tab.webview.addEventListener('page-title-updated', (e) => {
     tab.title = e.title || tab.url;
-    if (tab.id === state.activeTabId) renderTabs();
+    if (tab.id === state.activeTabId) {
+      renderTabs();
+      updateBookmarkToggle();
+    }
   });
   tab.webview.addEventListener('did-start-loading', () => {
     els.addressInput.value = tab.webview.getURL();
@@ -194,6 +260,7 @@ function wireWebview(tab) {
     if (url) {
       tab.url = url;
       els.addressInput.value = url;
+      if (tab.id === state.activeTabId) updateBookmarkToggle();
       recordHistory(tab);
     }
   });
@@ -201,14 +268,13 @@ function wireWebview(tab) {
     tab.url = e.url;
     tab.title = tab.title || e.url;
     els.addressInput.value = e.url;
+    if (tab.id === state.activeTabId) updateBookmarkToggle();
     recordHistory(tab);
   });
   tab.webview.addEventListener('did-navigate-in-page', (e) => {
     tab.url = e.url;
     els.addressInput.value = e.url;
-  });
-  tab.webview.addEventListener('new-window', (e) => {
-    e.preventDefault();
+    if (tab.id === state.activeTabId) updateBookmarkToggle();
   });
   tab.webview.addEventListener('dom-ready', () => {
     recordHistory(tab);
@@ -248,6 +314,7 @@ function navigate(url) {
   }
   els.addressInput.value = isHome(url) ? '' : url;
   renderTabs();
+  updateBookmarkToggle();
 }
 
 // ---------- Painéis ----------
@@ -280,7 +347,7 @@ function renderPanel() {
 
 function renderBookmarks() {
   if (!state.bookmarks.length) {
-    els.panelContent.innerHTML = '<div class="empty-state">Nenhum favorito ainda. Clique na estrela para salvar a página atual.</div>';
+    els.panelContent.innerHTML = '<div class="empty-state">Nenhum favorito ainda. Use a estrela ao lado da barra de endereço para salvar a página atual.</div>';
     return;
   }
   els.panelContent.innerHTML = `
@@ -309,6 +376,7 @@ function renderBookmarks() {
   els.panelContent.querySelectorAll('[data-remove-bookmark]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       state.bookmarks = await api.bookmarks.remove(btn.dataset.removeBookmark);
+      updateBookmarkToggle();
       renderPanel();
     });
   });
@@ -386,7 +454,7 @@ function renderDownloads() {
   els.panelContent.querySelectorAll('[data-open-download]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const d = state.downloads.find((x) => x.id === btn.dataset.openDownload);
-      if (d && d.path) api.downloads.openPath(d.path);
+      if (d && d.path) api.downloads.openPath(d.path).catch(() => {});
     });
   });
   els.panelContent.querySelectorAll('[data-remove-download]').forEach((btn) => {
@@ -454,10 +522,13 @@ function renderSettingsTab(tabName) {
       <div class="setting-section">
         <h3>Proteção do navegador</h3>
         <p>Sua senha fica no perfil local. Ela nunca é salva em texto puro e continua após atualizações.</p>
-        ${state.locked ? `
+        ${state.hasPassword ? `
           <div class="setting-row">
             <div><strong>Senha do navegador ativa</strong><small>O navegador pedirá sua senha ao abrir.</small></div>
-            <button class="danger-button" data-security-action="disable">Desativar</button>
+            <div style="display:flex;gap:8px;flex:none;">
+              <button class="ghost-button" data-security-action="change">Alterar senha</button>
+              <button class="danger-button" data-security-action="disable">Desativar</button>
+            </div>
           </div>` : `
           <form id="password-form" class="stack-form">
             <label for="new-password">Nova senha</label>
@@ -518,25 +589,37 @@ function renderSettingsTab(tabName) {
       }
       try {
         await api.password.set('', next);
-        state.locked = true;
+        state.hasPassword = true;
         renderSettingsTab('security');
       } catch (err) {
         errorEl.textContent = err.message || 'Erro ao ativar proteção.';
       }
     });
   }
+  const changeBtn = document.querySelector('[data-security-action="change"]');
+  if (changeBtn) {
+    changeBtn.addEventListener('click', async () => {
+      if (await promptChangePassword()) renderSettingsTab('security');
+    });
+  }
   const disableBtn = document.querySelector('[data-security-action="disable"]');
   if (disableBtn) {
-    disableBtn.addEventListener('click', async () => {
-      const current = window.prompt('Digite sua senha atual para desativar a proteção:');
-      if (current == null) return;
-      try {
-        await api.password.disable(current);
-        state.locked = false;
-        renderSettingsTab('security');
-      } catch (err) {
-        alert(err.message || 'Senha incorreta.');
-      }
+    disableBtn.addEventListener('click', () => {
+      promptPassword({
+        title: 'Desativar proteção',
+        message: 'Digite sua senha atual para desativar a proteção por senha.',
+        confirmLabel: 'Desativar',
+        onSubmit: async (current) => {
+          try {
+            await api.password.disable(current);
+          } catch {
+            return 'Senha incorreta. Tente novamente.';
+          }
+          state.hasPassword = false;
+          renderSettingsTab('security');
+          return '';
+        }
+      });
     });
   }
 }
@@ -654,6 +737,150 @@ function escapeHtml(str) {
   }[c]));
 }
 
+/**
+ * Modal de confirmação/entrada no tema do app (substitui window.prompt, que o Electron não suporta).
+ * Resolve com o valor digitado ao confirmar, ou null ao cancelar.
+ * Se `onSubmit` devolver uma string não vazia, ela é mostrada como erro e o modal permanece aberto.
+ */
+function promptPassword({ title, message = '', confirmLabel = 'Confirmar', onSubmit = null }) {
+  return new Promise((resolve) => {
+    els.modalTitle.textContent = title;
+    els.modalMessage.textContent = message;
+    els.modalInput.value = '';
+    els.modalError.textContent = '';
+    els.modalConfirm.textContent = confirmLabel;
+    els.modalConfirm.disabled = false;
+    els.modal.classList.remove('hidden');
+    els.modalInput.focus();
+
+    const cleanup = () => {
+      els.modal.classList.add('hidden');
+      els.modalConfirm.removeEventListener('click', onConfirm);
+      els.modalCancel.removeEventListener('click', onCancel);
+      els.modalInput.removeEventListener('keydown', onKey);
+      els.modal.removeEventListener('click', onBackdrop);
+    };
+    const cancel = () => {
+      cleanup();
+      resolve(null);
+    };
+    const onCancel = () => cancel();
+    const onBackdrop = (e) => {
+      if (e.target === els.modal) cancel();
+    };
+    const onKey = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        onConfirm();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        // Evita que o atalho global de Escape feche o painel junto com o modal.
+        e.stopPropagation();
+        cancel();
+      }
+    };
+    const onConfirm = async () => {
+      const value = els.modalInput.value;
+      if (onSubmit) {
+        els.modalConfirm.disabled = true;
+        let error = '';
+        try {
+          error = (await onSubmit(value)) || '';
+        } catch (err) {
+          error = err.message || 'Falha inesperada.';
+        }
+        els.modalConfirm.disabled = false;
+        if (error) {
+          els.modalError.textContent = error;
+          els.modalInput.focus();
+          els.modalInput.select();
+          return;
+        }
+      }
+      cleanup();
+      resolve(value);
+    };
+
+    els.modalConfirm.addEventListener('click', onConfirm);
+    els.modalCancel.addEventListener('click', onCancel);
+    els.modalInput.addEventListener('keydown', onKey);
+    els.modal.addEventListener('click', onBackdrop);
+  });
+}
+
+/**
+ * Modal para alterar a senha existente. Valida a confirmação da nova senha e a
+ * senha atual (via IPC) antes de salvar. Resolve `true` ao salvar e `false` ao cancelar.
+ */
+function promptChangePassword() {
+  return new Promise((resolve) => {
+    els.passwordModal.classList.remove('hidden');
+    els.pwCurrent.value = '';
+    els.pwNew.value = '';
+    els.pwConfirm.value = '';
+    els.pwError.textContent = '';
+    els.pwSave.disabled = false;
+    els.pwCurrent.focus();
+
+    const cleanup = () => {
+      els.passwordModal.classList.add('hidden');
+      els.pwSave.removeEventListener('click', onSave);
+      els.pwCancel.removeEventListener('click', onCancel);
+      els.passwordModal.removeEventListener('click', onBackdrop);
+      els.passwordModal.removeEventListener('keydown', onKey);
+    };
+    const cancel = () => {
+      cleanup();
+      resolve(false);
+    };
+    const onCancel = () => cancel();
+    const onBackdrop = (e) => {
+      if (e.target === els.passwordModal) cancel();
+    };
+    const onKey = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        onSave();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        cancel();
+      }
+    };
+    const onSave = async () => {
+      const current = els.pwCurrent.value;
+      const next = els.pwNew.value;
+      if (next.length < 4) {
+        els.pwError.textContent = 'A nova senha precisa ter ao menos 4 caracteres.';
+        return;
+      }
+      if (next !== els.pwConfirm.value) {
+        els.pwError.textContent = 'As senhas não coincidem.';
+        return;
+      }
+      els.pwSave.disabled = true;
+      try {
+        await api.password.set(current, next);
+      } catch {
+        els.pwSave.disabled = false;
+        els.pwError.textContent = 'Senha atual incorreta.';
+        els.pwCurrent.focus();
+        els.pwCurrent.select();
+        return;
+      }
+      cleanup();
+      resolve(true);
+    };
+
+    els.pwSave.addEventListener('click', onSave);
+    els.pwCancel.addEventListener('click', onCancel);
+    els.passwordModal.addEventListener('click', onBackdrop);
+    els.passwordModal.addEventListener('keydown', onKey);
+  });
+}
+
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -664,14 +891,23 @@ function formatBytes(bytes) {
 }
 
 // ---------- Inicialização ----------
-async function init() {
-  const appState = await api.app.getState();
+/**
+ * Aplica o estado vindo do processo principal. Chamado no boot e novamente
+ * após desbloquear, pois enquanto bloqueado o perfil vem vazio de propósito.
+ */
+function applyAppState(appState) {
   state.locked = appState.locked;
+  state.hasPassword = Boolean(appState.hasPassword);
   state.settings = { ...state.settings, ...appState.settings };
   state.bookmarks = appState.bookmarks || [];
   state.history = appState.history || [];
   state.downloads = appState.downloads || [];
   state.version = appState.version;
+}
+
+async function init() {
+  const appState = await api.app.getState();
+  applyAppState(appState);
 
   applyTheme(state.settings.theme);
 
@@ -742,6 +978,9 @@ function wireEvents() {
   // Nova aba
   els.newTab.addEventListener('click', () => addTab());
 
+  // Favoritar / desfavoritar a página atual
+  els.bookmarkToggle.addEventListener('click', toggleBookmark);
+
   // Barra de endereço
   els.addressForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -793,6 +1032,10 @@ function wireEvents() {
       els.addressInput.focus();
       els.addressInput.select();
     } else if (e.key === 'Escape') {
+      const modalOpen =
+        !els.modal.classList.contains('hidden') ||
+        !els.passwordModal.classList.contains('hidden');
+      if (modalOpen) return;
       closePanel();
     }
   });
@@ -805,7 +1048,9 @@ els.lockForm.addEventListener('submit', async (e) => {
   const ok = await api.unlock(password);
   if (ok) {
     els.lockError.textContent = '';
-    state.locked = false;
+    // O perfil só é liberado depois do desbloqueio; recarrega para preencher
+    // favoritos, histórico e downloads.
+    applyAppState(await api.app.getState());
     startBrowser();
   } else {
     els.lockError.textContent = 'Senha incorreta. Tente novamente.';

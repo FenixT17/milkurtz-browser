@@ -3,6 +3,7 @@
 const { app, BrowserWindow, ipcMain, shell, session, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 const { Store } = require('./storage/store.js');
 const { PasswordManager } = require('./security/password.js');
@@ -59,18 +60,38 @@ function createWindow() {
     mainWindow = null;
   });
 
-  // Política: abrir links externos no navegador do sistema, nunca em nova janela interna.
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isWebUrl(url)) shell.openExternal(url);
-    return { action: 'deny' };
-  });
-
   // Política de navegação: impedir que o shell saia da página inicial customizada.
+  // Compara com a URL de arquivo normalizada (pathToFileURL gera file:///C:/... no
+  // Windows), evitando o mismatch de barras de `'file://' + path.join(...)`.
+  const shellUrl = pathToFileURL(path.join(__dirname, 'renderer', 'index.html')).href;
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (url !== 'file://' + path.join(__dirname, 'renderer', 'index.html')) {
+    let target = url;
+    try {
+      target = new URL(url).href;
+    } catch {
+      // URL malformada: trata como navegação externa.
+    }
+    if (target !== shellUrl) {
       event.preventDefault();
       if (isWebUrl(url)) shell.openExternal(url);
     }
+  });
+}
+
+/**
+ * Política global de janelas: nega qualquer window.open e manda links externos
+ * para o navegador do sistema.
+ *
+ * Registrado em `web-contents-created` para valer também para os webviews, já que
+ * o evento `new-window` foi removido do Electron. O atributo booleano
+ * `allowpopups` NÃO deve ser usado no webview (qualquer valor o ativa).
+ */
+function registerWindowOpenPolicy() {
+  app.on('web-contents-created', (_event, contents) => {
+    contents.setWindowOpenHandler(({ url }) => {
+      if (isWebUrl(url)) shell.openExternal(url);
+      return { action: 'deny' };
+    });
   });
 }
 
@@ -127,12 +148,16 @@ function registerIpc() {
   });
 
   ipcMain.handle('app:getState', () => {
+    const locked = passwordManager.isLocked();
     return {
-      locked: passwordManager.isLocked(),
+      locked,
+      hasPassword: passwordManager.hasPassword(),
+      // Enquanto bloqueado, o renderer só recebe o que a tela de bloqueio
+      // precisa (tema); o perfil não é exposto antes do desbloqueio.
       settings: store.getSettings(),
-      bookmarks: store.getBookmarks(),
-      history: store.getHistory(),
-      downloads: store.getDownloads(),
+      bookmarks: locked ? [] : store.getBookmarks(),
+      history: locked ? [] : store.getHistory(),
+      downloads: locked ? [] : store.getDownloads(),
       version: updater.getCurrentVersion()
     };
   });
@@ -218,9 +243,13 @@ function registerIpc() {
   });
 
   ipcMain.handle('downloads:openPath', (_event, filePath) => {
-    if (typeof filePath === 'string' && filePath) {
-      shell.showItemInFolder(filePath);
-    }
+    requireUnlocked();
+    if (typeof filePath !== 'string' || !filePath) return false;
+    // Só revela arquivos registrados na lista de downloads, para não aceitar
+    // caminhos arbitrários vindos do renderer.
+    const known = store.getDownloads().some((d) => d.path === filePath);
+    if (!known) throw new Error('Download não encontrado.');
+    shell.showItemInFolder(filePath);
     return true;
   });
 }
@@ -258,11 +287,12 @@ async function bootstrap() {
 
   store = new Store(userDataPath);
   passwordManager = new PasswordManager(userDataPath);
-  updater = new Updater(path.join(__dirname, '..', 'version.json'));
+  updater = new Updater(path.join(__dirname, '..', 'version.json'), app.getVersion());
 
   // Sem senha configurada → já desbloqueado.
   isUnlocked = !passwordManager.isLocked();
 
+  registerWindowOpenPolicy();
   registerIpc();
   registerUpdateIpc();
 

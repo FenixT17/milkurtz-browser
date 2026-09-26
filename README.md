@@ -11,7 +11,7 @@ Navegador web focado em usuários de língua portuguesa, com sistema de instala�
 - Proteção por senha (scrypt + criptografia do sistema)
 - Temas: Milkurtz (roxo), Escuro e Claro
 - Barra de título customizada (janela sem moldura nativa)
-- Base para atualizações automáticas via `version.json`
+- Atualizações automáticas via `electron-updater` (versão em `package.json`, feed em `version.json`)
 
 ## Requisitos
 

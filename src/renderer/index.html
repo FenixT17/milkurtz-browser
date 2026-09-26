@@ -25,6 +25,41 @@
       </div>
     </div>
 
+    <!-- Modal genérico (confirmações e entrada de senha) -->
+    <div id="modal" class="modal hidden">
+      <div class="modal-box">
+        <h3 id="modal-title">Confirmar</h3>
+        <p id="modal-message" class="modal-message"></p>
+        <input id="modal-input" class="text-input" type="password" autocomplete="current-password">
+        <p id="modal-error" class="form-error"></p>
+        <div class="modal-actions">
+          <button id="modal-cancel" class="ghost-button" type="button">Cancelar</button>
+          <button id="modal-confirm" class="primary-button" type="button">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de alteração de senha -->
+    <div id="password-modal" class="modal hidden">
+      <div class="modal-box">
+        <h3>Alterar senha</h3>
+        <p class="modal-message">Confirme sua senha atual e defina a nova.</p>
+        <div class="stack-form">
+          <label for="pw-current">Senha atual</label>
+          <input id="pw-current" class="text-input" type="password" autocomplete="current-password">
+          <label for="pw-new">Nova senha</label>
+          <input id="pw-new" class="text-input" type="password" minlength="4" autocomplete="new-password">
+          <label for="pw-confirm">Confirmar nova senha</label>
+          <input id="pw-confirm" class="text-input" type="password" minlength="4" autocomplete="new-password">
+        </div>
+        <p id="pw-modal-error" class="form-error"></p>
+        <div class="modal-actions">
+          <button id="pw-modal-cancel" class="ghost-button" type="button">Cancelar</button>
+          <button id="pw-modal-save" class="primary-button" type="button">Salvar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Estrutura do navegador -->
     <div class="browser-shell">
       <header class="browser-topbar">
@@ -53,6 +88,8 @@
         </div>
         <form id="address-form" class="address-bar">
           <input id="address-input" class="address-input" type="text" placeholder="Pesquisar ou digitar endereço" spellcheck="false">
+          <button id="bookmark-toggle" class="address-action bookmark-toggle" type="button"
+                  aria-label="Favoritar esta página" title="Favoritar esta página" disabled>&#x2606;</button>
         </form>
         <div class="toolbar-tools">
           <button class="address-action" data-panel-action="bookmarks" aria-label="Favoritos" title="Favoritos">&#x2605;</button>

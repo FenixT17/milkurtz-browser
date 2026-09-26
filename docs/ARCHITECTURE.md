@@ -23,7 +23,7 @@ src/
   security/
     password.js    Proteção por senha (scrypt + safeStorage)
   updates/
-    updater.js     Leitura/comparação de version.json
+    updater.js     Atualizações (electron-updater; feed em version.json)
   installer/       Notas sobre instalação
 scripts/
   disable-sac.ps1     Desativa o Smart App Control (quando necessário)
@@ -38,6 +38,8 @@ scripts/
 - URLs externas abertas com `shell.openExternal`; `window.open` negado
 - Senha local com hash `scrypt` + salt e criptografia adicional via `safeStorage` (DPAPI no Windows)
 - Escrita atômica em disco (`.tmp` + rename) para os dados do perfil
+- IPC do perfil protegido por `requireUnlocked()`; `app:getState` só devolve favoritos/histórico/downloads após o desbloqueio
+- `downloads:openPath` exige desbloqueio e só revela arquivos da própria lista de downloads
 - CSP no `index.html` cobrindo requisições web normais
 
 ## Dados do perfil
@@ -56,5 +58,10 @@ Os dados ficam em `%APPDATA%/milkurtz-browser/user_data/`:
 
 ## Atualizações
 
-O `updater.js` lê `version.json` e compara com a versão remota (`compareVersions`).
-O fluxo completo (download + instalação do novo pacote) é o próximo passo do roadmap.
+A versão do app vem do `package.json` (`app.getVersion()`) — fonte única, a mesma
+que o electron-builder grava no instalador e o electron-updater usa para comparar.
+O `version.json` guarda apenas o `updateUrl` (feed) e o `changelog` exibido na UI;
+se ainda tiver um campo `version`, o updater avisa quando ele divergir do package.json.
+
+O `updater.js` usa o `electron-updater` para consultar o feed, comparar com a versão
+atual, baixar o pacote (com progresso) e instalar via NSIS.

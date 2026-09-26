@@ -196,7 +196,9 @@ button { color: inherit; border: 0; cursor: pointer; background: transparent; }
 
 .address-action:hover { color: var(--accent-strong); background: var(--accent-soft); }
 
-.address-bar { flex: 1 1 auto; display: flex; }
+.address-bar { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; }
+
+.address-bar .address-input { flex: 1 1 auto; }
 
 .address-input {
   width: 100%;
@@ -215,6 +217,12 @@ button { color: inherit; border: 0; cursor: pointer; background: transparent; }
 
 .toolbar-tools { display: flex; gap: 2px; }
 .menu-button { font-size: 14px; letter-spacing: 2px; }
+
+.bookmark-toggle { flex: none; font-size: 16px; line-height: 1; }
+.bookmark-toggle.on { color: var(--accent-strong); }
+.bookmark-toggle.on:hover { color: var(--accent-strong); }
+.bookmark-toggle:disabled { opacity: .35; cursor: default; }
+.bookmark-toggle:disabled:hover { background: transparent; color: var(--muted); }
 
 /* Área da página */
 .page-area {
@@ -558,3 +566,42 @@ button { color: inherit; border: 0; cursor: pointer; background: transparent; }
 }
 
 .lock-hint { color: var(--muted); font-size: 13px; margin: 0; }
+
+/* Modal genérico */
+.modal {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 7, 13, .62);
+}
+
+.modal-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(420px, calc(100% - 40px));
+  padding: 26px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.modal-box h3 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+.modal-message { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+.ghost-button {
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  transition: .2s;
+}
+
+.ghost-button:hover { background: var(--surface-hover); color: var(--text); }

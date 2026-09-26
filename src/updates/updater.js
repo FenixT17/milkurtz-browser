@@ -16,12 +16,17 @@ const path = require('path');
  *
  * O feed é configurado em version.json (campo "updateUrl") e pode ser
  * sobrescrito por MILKURTZ_UPDATE_URL no ambiente.
+ *
+ * A versão do app vem do package.json (`app.getVersion()`), fonte única — é a
+ * mesma que o electron-builder grava no instalador e o electron-updater usa
+ * para comparar. O version.json guarda apenas o feed e o changelog.
  */
 class Updater extends EventEmitter {
-  constructor(versionFile) {
+  constructor(versionFile, appVersion) {
     super();
     this.versionFile = versionFile;
-    this.info = { version: '0.0.0', updateUrl: '', changelog: '' };
+    this.appVersion = appVersion || '0.0.0';
+    this.info = { updateUrl: '', changelog: '' };
     this.checking = false;
     this._load();
     this._configure();
@@ -31,7 +36,14 @@ class Updater extends EventEmitter {
     try {
       this.info = JSON.parse(fs.readFileSync(this.versionFile, 'utf8'));
     } catch {
-      this.info = { version: '0.0.0', updateUrl: '', changelog: '' };
+      this.info = { updateUrl: '', changelog: '' };
+    }
+    // Compatibilidade: se version.json ainda trouxer "version", avisa quando
+    // divergir do package.json e mantém a versão do app como autoritativa.
+    if (this.info.version && this.info.version !== this.appVersion) {
+      console.warn(
+        `[milkurtz] version.json (${this.info.version}) difere de package.json (${this.appVersion}); usando package.json.`
+      );
     }
   }
 
@@ -76,7 +88,7 @@ class Updater extends EventEmitter {
   }
 
   getCurrentVersion() {
-    return this.info.version || '0.0.0';
+    return this.appVersion;
   }
 
   getUpdateUrl() {
