@@ -65,6 +65,13 @@
 - Verificação: `node --check` sem erros em `app.js`, `store.js`, `main.js`, `preload.js` e `updater.js`; `version.json` válido.
 - Pendente: testar a interface no Electron (`npm start`).
 
+### Sessão 8
+- Build do instalador Windows feito a partir do Linux: instalados `wine` e `wine32:i386` (multiarch i386) e recriado o prefixo `~/.wine`, que estava corrompido em modo wow64.
+- Artefato: `release/milkurtz-1.0.0-setup.exe` (78.779.258 bytes) + `latest.yml` + `.blockmap`.
+- Publicado como assets do release `v1.0.0` no GitHub (assets antigos removidos e substituídos). O `latest.yml` publicado confere com o local (sha512 idêntico).
+- Verificação: `releases/latest/download/latest.yml` responde com `version: 1.0.0`.
+- Observação: mantendo a versão 1.0.0, o updater **não** propaga esta correção para quem já tem 1.0.0 (versão igual). Para atualização automática é preciso subir para 1.0.1.
+
 ## Problemas conhecidos
 - Binários sem assinatura podem ser bloqueados pelo Smart App Control.
 - `webviewTag: true` exige cuidado extra de segurança.
