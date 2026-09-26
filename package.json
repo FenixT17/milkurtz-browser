@@ -1,7 +1,7 @@
 {
   "name": "milkurtz-browser",
   "productName": "Milkurtz Browser",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Navegador web focado em usuários de língua portuguesa, com sistema de instalação e atualizações automáticas.",
   "main": "src/main.js",
   "author": "siqwsxx",
