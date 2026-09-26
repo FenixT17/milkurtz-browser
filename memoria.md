@@ -72,6 +72,12 @@
 - Verificação: `releases/latest/download/latest.yml` responde com `version: 1.0.0`.
 - Observação: mantendo a versão 1.0.0, o updater **não** propaga esta correção para quem já tem 1.0.0 (versão igual). Para atualização automática é preciso subir para 1.0.1.
 
+### Sessão 9
+- Versão elevada para 1.0.1 (`package.json` e `package-lock.json`) e `changelog` do `version.json` atualizado.
+- Build gerou `release/milkurtz-1.0.1-setup.exe` (78.779.330 bytes) + `latest.yml` + `.blockmap`.
+- Commit `a21be4c` e tag leve `v1.0.1` enviados para `origin`.
+- Release `v1.0.1` publicado no GitHub com os 3 assets; `releases/latest/download/latest.yml` responde `version: 1.0.1` com sha512 conferindo, então o updater propaga a atualização para quem está em 1.0.0.
+
 ## Problemas conhecidos
 - Binários sem assinatura podem ser bloqueados pelo Smart App Control.
 - `webviewTag: true` exige cuidado extra de segurança.
